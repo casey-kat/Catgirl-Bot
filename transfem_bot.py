@@ -1,13 +1,14 @@
 import discord
 from discord.ext import commands
-from datetime import datetime
+import re
+import time
 from config import TOKEN
 
 
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot('!', intents=intents)
-mod_commands_channel = bot.get_channel(937852789026070559)
+mod_commands_channel_id = 937852789026070559
 
 infile = open('./name_filter.txt', 'r')
 names = infile.read().splitlines()
@@ -27,38 +28,36 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # if message is outside mod-commands, do nothing
-    # if message.channel.id != mod_commands_channel.id:
-    #    return
+    # If the message can be a valid kid name, send a message saying so.
+    match = re.match(r'[a-zA-Z]{4} [a-zA-Z]{6,7}$', message.content)
+    if match and match[0].lower() not in names:
+        await message.channel.send(f'"{match[0]}" is a valid kid name.')
 
-    # homestuck names
-    words = message.content.split(' ')
-    if len(words) == 2:
+    # If the message can be a valid troll name, send a message saying so.
+    match = re.match(r'[a-zA-Z]{6} [a-zA-Z]{6}$', message.content)
+    if match and match[0].lower() not in names:
+        await message.channel.send(f'"{match[0]}" is a valid troll name.')
 
-        if len(words[0]) == 4 and (len(words[1]) == 6 or len(words[1]) == 7):
-            if message.content.lower() in names:
-                return
-            await message.channel.send(f'"{words[0]} {words[1]}" is a valid kid name.')
-
-        if len(words[0]) == 6 and len(words[1]) == 6:
-            if message.content.lower() in names:
-                return
-            await message.channel.send(f'"{words[0]} {words[1]}" is a valid troll name.')
+    # If message is outside the mod-commands channel, return
+    if message.channel.id != mod_commands_channel_id:
+        return
 
 
-# send mods the flirting ban countdown whenever someone joins
+# When a new member joins, send the result of flirt_ban_warning to the mod_commands channel
 @bot.event
-async def on_member_join(member):
-    await mod_commands_channel.send(flirt_ban_warning(mod_commands_channel))
+async def on_member_join(_):
+    channel = bot.get_channel(mod_commands_channel_id)
+    await channel.send(flirt_ban_warning(channel))
 
 
-# send mods the flirting ban countdown whenever someone leaves
+# When a member leaves, send the result of flirt_ban_warning to the mod_commands channel
 @bot.event
-async def on_member_leave(member):
-    await mod_commands_channel.send(flirt_ban_warning(mod_commands_channel))
+async def on_member_leave(_):
+    channel = bot.get_channel(mod_commands_channel_id)
+    await channel.send(flirt_ban_warning(channel))
 
 
-# see current flirting ban countdown       guild_ids=[937495559063896134]
+# When the command is inputted by a mod, send the result of flirt_ban_warning
 @bot.slash_command()
 @commands.has_role("mod")
 async def members_till_flirting_ban(channel):
@@ -66,10 +65,8 @@ async def members_till_flirting_ban(channel):
 
 
 def flirt_ban_warning(channel) -> str:
-    time = datetime.now().strftime("%H:%M:%S")
-    date = datetime.today().strftime("%B %d, %Y")
     members_till_ban = flirt_ban_limit - channel.guild.member_count
-    return f"`It is {time} on {date.upper()} at UTC: we are {members_till_ban} members away from the ban on flirting.`"
+    return f"It is currently <t:{int(time.time())}> in your timezone. We are {members_till_ban} members away from the ban on flirting."
 
 
 bot.run(TOKEN)
