@@ -4,6 +4,7 @@ import re
 import time
 from config import TOKEN
 
+# ------------------------------------------------------------------------------------------------------------------------------------------------
 
 intents = discord.Intents.default()
 intents.members = True
@@ -16,6 +17,8 @@ infile.close()
 
 flirt_ban_limit = 200
 
+# ------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 @bot.event
 async def on_ready():
@@ -24,23 +27,27 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    # if message is from this bot, do nothing
+
+    # If message is from this bot, do nothing (bit reduntant due to the next section)
     if message.author == bot.user:
         return
 
-    # If the message can be a valid kid name, send a message saying so.
-    match = re.match(r'[a-zA-Z]{4} [a-zA-Z]{6,7}$', message.content)
-    if match and match[0].lower() not in names:
-        await message.channel.send(f'"{match[0]}" is a valid kid name.')
+    # -------------------------------------------------------------------------------------
 
-    # If the message can be a valid troll name, send a message saying so.
-    match = re.match(r'[a-zA-Z]{6} [a-zA-Z]{6}$', message.content)
-    if match and match[0].lower() not in names:
-        await message.channel.send(f'"{match[0]}" is a valid troll name.')
+    # If message is from any bot at all, do nothing (for pluralkit users)
+    if message.author.bot:
+        return
+
+    # Make the homestuck jokes
+    message.channel.send(homestuck_joke(message))
+
+    # -------------------------------------------------------------------------------------
 
     # If message is outside the mod-commands channel, return
     if message.channel.id != mod_commands_channel_id:
         return
+
+    # -------------------------------------------------------------------------------------
 
 
 # When a new member joins, send the result of flirt_ban_warning to the mod_commands channel
@@ -64,11 +71,30 @@ async def members_till_flirting_ban(channel):
     await channel.respond(flirt_ban_warning(channel))
 
 
-def flirt_ban_warning(channel) -> str:
+# ------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+# Prints the time, and also the amount of members that must join for the count to reach flirt_ban_limit
+async def flirt_ban_warning(channel) -> str:
     members_till_ban = flirt_ban_limit - channel.guild.member_count
     return f"It is currently <t:{int(time.time())}> in your timezone. We are {members_till_ban} members away from the ban on flirting."
 
 
-bot.run(TOKEN)
+# Will check a sent message, and if it could be a valid kid name (by following the letter count conventions) then it will reply saying so
+async def homestuck_joke(message) -> str:
 
-# py -3 transfem_bot.py
+    # If the message can be a valid kid name, send a message saying so.
+    match = re.match(r'[a-zA-Z]{4} [a-zA-Z]{6,7}$', message.content)
+    if match and match[0].lower() not in names:
+        return f'"{match[0]}" is a valid kid name.'
+
+    # If the message can be a valid troll name, send a message saying so.
+    match = re.match(r'[a-zA-Z]{6} [a-zA-Z]{6}$', message.content)
+    if match and match[0].lower() not in names:
+        return f'"{match[0]}" is a valid troll name.'
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+bot.run(TOKEN)
