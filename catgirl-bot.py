@@ -20,6 +20,9 @@ spam_channel_id = 937497124734660699
 async def on_ready():
     print(f'We have logged in as {bot.user}')
 
+    await homestuck.test()
+
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="with BLÅHAJ"))
 
 @bot.event
 async def on_message(message):
@@ -33,10 +36,11 @@ async def on_message(message):
         return
 
     # If message is anywhere outside the test channel, do nothing (for testing purposes)
-    if not (message.channel.id == mod_commands_channel_id or message.channel.id == spam_channel_id):
+    if not (message.channel.id == mod_commands_channel_id): #or message.channel.id == spam_channel_id):
         return
-    
-    await homestuck.names_check(message)
+
+    homestuck_name_reply = await homestuck.name_check(message.content)
+    if homestuck_name_reply: await message.channel.send(homestuck_name_reply)
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------
 
